@@ -208,7 +208,59 @@ if st.session_state.stage == 2:
 if st.session_state.stage >= 3:
     u = st.session_state.user_info
 
-    is_urm = any(e in u["ethnicity"] for e in [
+    # Show settings panel that allows users to modify preferences
+    with chat_col:
+        with st.expander("⚙️ Adjust your preferences", expanded=True):
+            st.markdown("**Location & Budget**")
+            
+            states = sorted(df["state"].dropna().unique().tolist()) if "state" in df.columns else []
+            
+            # Initialize widget state keys if they don't exist, or sync from user_info when first entering stage 3
+            if "settings_initialized" not in st.session_state:
+                st.session_state.settings_pref_states = u.get("pref_states", [])
+                st.session_state.settings_max_price = int(u.get("max_price", df["net_price"].median() if "net_price" in df.columns else 30000))
+                st.session_state.settings_earnings_pref = u.get("earnings_pref", 0.5)
+                st.session_state.settings_debt_pref = u.get("debt_pref", 0.7)
+                st.session_state.settings_equity_pref = u.get("equity_pref", 0.8)
+                st.session_state.settings_afford_pref = u.get("afford_pref", 0.7)
+                st.session_state.settings_initialized = True
+            
+            pref_states = st.multiselect(
+                "Any states you're especially interested in? (leave empty for 'anywhere')",
+                states,
+                key="settings_pref_states",
+            )
+            max_price = st.number_input(
+                "What's the highest **net price per year** you're comfortable with?",
+                min_value=0,
+                value=st.session_state.settings_max_price,
+                key="settings_max_price",
+                step=1000,
+            )
+
+            st.markdown("**What matters most to you?** (Slide higher means more important)")
+            earnings_pref = st.slider("Long-run earnings after college", 0.0, 1.0, value=st.session_state.settings_earnings_pref, key="settings_earnings_pref")
+            debt_pref = st.slider("Keeping my debt low", 0.0, 1.0, value=st.session_state.settings_debt_pref, key="settings_debt_pref")
+            equity_pref = st.slider("Colleges where students like me **actually graduate**", 0.0, 1.0, value=st.session_state.settings_equity_pref, key="settings_equity_pref")
+            afford_pref = st.slider("Overall affordability (net price, working while studying)", 0.0, 1.0, value=st.session_state.settings_afford_pref, key="settings_afford_pref")
+            
+            # Button to update results with new settings
+            if st.button("Show my matches 🎓", use_container_width=True):
+                # Update user_info when button is clicked
+                st.session_state.user_info.update({
+                    "pref_states": pref_states,
+                    "max_price": max_price,
+                    "earnings_pref": earnings_pref,
+                    "debt_pref": debt_pref,
+                    "equity_pref": equity_pref,
+                    "afford_pref": afford_pref,
+                })
+                st.rerun()
+    
+    # Refresh u to get updated values
+    u = st.session_state.user_info
+
+    is_urm = any(e in u.get("ethnicity", []) for e in [
         "Black / African American", "Latino / Hispanic", "Native / Indigenous"
     ])
     is_low_income = (u.get("low_income") == "Yes")
