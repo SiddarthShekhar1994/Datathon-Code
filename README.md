@@ -76,3 +76,8 @@ The app creates a ranked list of colleges with:
 ### 1. Install Dependencies  
 ```bash
 pip install streamlit pandas numpy scikit-learn
+```
+### 2. Run the App
+```bash
+streamlit run app.py
+
